@@ -1,0 +1,436 @@
+<!-- Chosen Palette: Warm Neutral & Indigo (BG: slate-50, Primary: indigo-600, Accent: amber-500) -->
+<!-- Application Structure Plan: O design da SPA foi adaptado para fundir dois POPs num único fluxo de 7 fases. A navegação por separadores (Tabs) é mantida: 1) "Visão por Papel", 2) "Processo Completo", 3) "Artefatos Chave". A "Visão por Papel" foi reestruturada para 4 funções (Remoto/Interno, Externo, Laboratório, Agendamento), pois o fluxo unificado é mais complexo e envolve mais handoffs. O "Processo Completo" foi redesenhado para refletir o novo fluxo de 7 fases, desde a análise remota até a validação pós-entrega. "Artefatos" foi expandido para incluir os novos itens (ex: Chamado de Entrega). Esta arquitetura modular permite que cada utilizador veja o processo completo ou apenas o checklist da sua função. -->
+<!-- Visualization & Content Choices: O POP unificado detalha um processo end-to-end. Informação: POP (todo). Objetivo: Organizar. Método: Navegação por separadores (HTML/JS) para dividir o conteúdo (Papel, Processo, Artefatos). Informação: Responsabilidades. Objetivo: Informar/Referência. Método: 4 Checklists interativos (HTML/JS) baseados nos 4 papéis chave do novo fluxo. Justificação: Permite a cada função focar-se apenas nas suas tarefas. Informação: Fluxo do Processo (7 Fases). Objetivo: Mostrar Sequência. Método: Fluxograma vertical (HTML/Tailwind) com 7 cartões ligados por linhas. Justificação: Visualiza a sequência completa e os handoffs sem SVG/Mermaid. Informação: Artefatos (9 itens). Objetivo: Referência Rápida. Método: Grelha de cartões (HTML/Tailwind) com ícones Unicode. Justificação: Referência fácil de digitalizar para todos os documentos e sistemas do processo. -->
+<!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POP Unificado - Fluxo de Equipamentos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .nav-button {
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            color: #4338ca;
+            background-color: #eef2ff;
+            transition: all 0.2s;
+        }
+        .nav-button.active {
+            color: #ffffff;
+            background-color: #4f46e5;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+        .nav-button:hover:not(.active) {
+            background-color: #e0e7ff;
+        }
+        
+        .sub-nav-button {
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            color: #475569;
+            background-color: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s;
+            flex-grow: 1;
+            text-align: center;
+        }
+        .sub-nav-button.active {
+            color: #ffffff;
+            background-color: #64748b;
+            border-color: #64748b;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans text-slate-800">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-6xl">
+        
+        <header class="mb-8">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-bold text-indigo-700 mb-1">POP Unificado - Fluxo de Equipamentos</h1>
+                <p class="text-lg text-slate-600">Gestão Completa: Coleta, Laboratório e Devolução</p>
+            </div>
+        </header>
+
+        <nav class="flex flex-wrap gap-2 mb-6 border-b border-slate-200 pb-4">
+            <button id="nav-roles" class="nav-button active">Visão por Papel</button>
+            <button id="nav-process" class="nav-button">Processo Completo (7 Fases)</button>
+            <button id="nav-artifacts" class="nav-button">Artefatos Chave</button>
+        </nav>
+
+        <div class="flex justify-end mb-4">
+            <button id="print-button" class="text-sm bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium py-2 px-3 rounded-lg shadow-sm transition-colors flex items-center gap-2">
+                <span>🖨️</span>
+                Gerar Versão p/ Impressão (Word/PDF)
+            </button>
+        </div>
+
+        <main id="content-container">
+
+            <div id="view-roles" class="view-content">
+                <p class="text-base text-slate-600 mb-6 max-w-3xl">
+                    Esta vista divide o processo pelas responsabilidades de cada função. O fluxo envolve múltiplos analistas e setores; utilize os botões para ver o checklist de cada um.
+                </p>
+
+                <div class="flex flex-col sm:flex-row justify-center gap-2 mb-6">
+                    <button id="btn-role-interno" class="sub-nav-button active">Analista (Remoto/Interno)</button>
+                    <button id="btn-role-externo" class="sub-nav-button">Analista Externo</button>
+                    <button id="btn-role-lab" class="sub-nav-button">Analista de Laboratório</button>
+                    <button id="btn-role-agenda" class="sub-nav-button">Setor de Agendamento</button>
+                </div>
+
+                <div id="role-content-container" class="space-y-4">
+                    
+                    <div id="role-interno" class="role-content space-y-4">
+                        <div class="bg-white p-5 rounded-lg shadow-md border border-slate-200">
+                            <h3 class="text-xl font-semibold text-indigo-700 mb-3">Checklist: Analista (Remoto/Interno)</h3>
+                            <ul class="list-disc list-outside space-y-2 pl-5 text-slate-700">
+                                <li>Receber e analisar o "Chamado de Problema" inicial.</li>
+                                <li>Tentar resolução remota.</li>
+                                <li>Se não for resolvido, solicitar abertura do chamado de retirada e agendar a coleta com o cliente.</li>
+                                <li>Acompanhar o processo enquanto estiver no laboratório.</li>
+                                <li>(Se houver hardware) Informar o cliente, enviar orçamento e obter aprovação.</li>
+                                <li>Após a entrega, realizar a validação final com o cliente (via Milldesk/WhatsApp).</li>
+                                <li>Se tudo estiver OK, encerrar o "Chamado de Problema" (principal).</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div id="role-externo" class="role-content space-y-4 hidden">
+                        <div class="bg-white p-5 rounded-lg shadow-md border border-slate-200">
+                            <h3 class="text-xl font-semibold text-indigo-700 mb-3">Checklist: Analista Externo</h3>
+                            <ul class="list-disc list-outside space-y-2 pl-5 text-slate-700">
+                                <li>Deslocar-se ao cliente na data agendada para retirada.</li>
+                                <li>Tirar fotos detalhadas do estado físico da máquina. 📸</li>
+                                <li>Anexar as fotos ao "Chamado de Retirada".</li>
+                                <li>Solicitar ao cliente a assinatura da OS Virtual no "Chamado de Retirada". ✍️</li>
+                                <li>Levar a máquina para o laboratório.</li>
+                                <li>Preencher a "Planilha de Controle de Entrada" (Nº Chamados, Cliente, Modelo, etc.).</li>
+                                <li>Afixar "Etiqueta de Identificação" (Cliente, Chamado Principal, Data) na máquina. 🏷️</li>
+                                <li>Comunicar internamente (via Teams) a chegada do equipamento.</li>
+                                <li>Encerrar o "Chamado de Retirada", informando o cliente.</li>
+                                <li>Receber o "Chamado de Entrega" do setor de agendamento.</li>
+                                <li>Realizar a entrega no cliente e validar o funcionamento básico.</li>
+                                <li>Encerrar o "Chamado de Entrega".</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div id="role-lab" class="role-content space-y-4 hidden">
+                        <div class="bg-white p-5 rounded-lg shadow-md border border-slate-200">
+                            <h3 class="text-xl font-semibold text-amber-600 mb-3">Checklist: Analista de Laboratório</h3>
+                            <ul class="list-disc list-outside space-y-2 pl-5 text-slate-700">
+                                <li>Assumir o "Chamado de Problema" (principal) assim que a máquina chegar.</li>
+                                <li>Definir a "Previsão de Saída" na Planilha de Controle.</li>
+                                <li>Comunicar o início da análise ao cliente (via "Chamado de Problema").</li>
+                                <li>Realizar testes e diagnóstico.</li>
+                                <li>(Se houver hardware) Aguardar aprovação do orçamento, aguardar peça, substituir e testar.</li>
+                                <li>(Se não houver peça) Realizar reparo (software/configuração) e testar.</li>
+                                <li>Manter *todas* as ações e testes registados no "Chamado de Problema".</li>
+                                <li>Atualizar o status do chamado (ex: aguardando peça, em teste, finalizado).</li>
+                                <li>Após a conclusão, atualizar a "Data Efetiva de Saída" na Planilha de Controle.</li>
+                                <li>Encaminhar o equipamento (físico) e o chamado (sistema) ao "Setor de Agendamento".</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div id="role-agenda" class="role-content space-y-4 hidden">
+                        <div class="bg-white p-5 rounded-lg shadow-md border border-slate-200">
+                            <h3 class="text-xl font-semibold text-slate-600 mb-3">Checklist: Setor de Agendamento</h3>
+                            <ul class="list-disc list-outside space-y-2 pl-5 text-slate-700">
+                                <li>Receber o chamado e o equipamento do Analista de Laboratório.</li>
+                                <li>Verificar a agenda e definir a data/horário de devolução com o cliente.</li>
+                                <li>Abrir um novo "Chamado de Entrega" no Milldesk.</li>
+                                <li>Atribuir o "Chamado de Entrega" ao Analista Externo responsável.</li>
+                                <li>Atualizar o status do chamado para "Externo" ou "Aguardando execução".</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div id="view-process" class="view-content hidden">
+                <p class="text-base text-slate-600 mb-8 max-w-3xl">
+                    Este é o fluxo de trabalho unificado, mostrando o processo completo desde a abertura do chamado até a validação final pós-entrega.
+                </p>
+
+                <div class="flex flex-col items-center">
+                    
+                    <div class="w-full max-w-2xl bg-white p-5 rounded-lg shadow-md border border-slate-200">
+                        <span class="inline-block bg-slate-100 text-slate-700 text-xs font-semibold px-2 py-0.5 rounded-full mb-2">FASE 1</span>
+                        <h3 class="text-xl font-semibold text-slate-800 mb-2">Diagnóstico Inicial</h3>
+                        <p class="text-sm font-medium text-slate-500 mb-3">Responsável: Analista (Remoto/Interno)</p>
+                        <p class="text-slate-700">O cliente abre um chamado. O analista interno responsável realiza uma análise inicial remotamente. Caso não possa ser resolvido, o analista solicita a retirada da máquina.</p>
+                    </div>
+
+                    <div class="w-px h-12 bg-slate-300 my-1"></div>
+
+                    <div class="w-full max-w-2xl bg-white p-5 rounded-lg shadow-md border border-slate-200">
+                        <span class="inline-block bg-slate-100 text-slate-700 text-xs font-semibold px-2 py-0.5 rounded-full mb-2">FASE 2</span>
+                        <h3 class="text-xl font-semibold text-slate-800 mb-2">Abertura e Agendamento da Retirada</h3>
+                        <p class="text-sm font-medium text-slate-500 mb-3">Responsável: Equipe 1º Atendimento / Analista Interno</p>
+                        <p class="text-slate-700">A Equipe do Primeiro Atendimento abre o "Chamado de Retirada" (vinculado ao principal). O Analista Interno define e agenda a data/horário com o cliente e atualiza o status.</p>
+                    </div>
+
+                    <div class="w-px h-12 bg-indigo-300 my-1"></div>
+
+                    <div class="w-full max-w-2xl bg-white p-5 rounded-lg shadow-md border border-indigo-200">
+                        <span class="inline-block bg-indigo-100 text-indigo-700 text-xs font-semibold px-2 py-0.5 rounded-full mb-2">FASE 3</span>
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-2">Retirada em Campo</h3>
+                        <p class="text-sm font-medium text-slate-500 mb-3">Responsável: Analista Externo</p>
+                        <p class="text-slate-700">Analista vai ao cliente, tira fotos, anexa ao "Chamado de Retirada" e coleta a assinatura virtual (OS) do cliente.</p>
+                    </div>
+                    
+                    <div class="w-px h-12 bg-indigo-300 my-1"></div>
+                    
+                    <div class="w-full max-w-2xl bg-white p-5 rounded-lg shadow-md border border-indigo-200">
+                        <span class="inline-block bg-indigo-100 text-indigo-700 text-xs font-semibold px-2 py-0.5 rounded-full mb-2">FASE 4</span>
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-2">Recebimento e Triagem no Lab</h3>
+                        <p class="text-sm font-medium text-slate-500 mb-3">Responsável: Analista Externo</p>
+                        <p class="text-slate-700">Analista preenche a Planilha de Controle, afixa a Etiqueta de Identificação, avisa no Teams e encerra o "Chamado de Retirada".</p>
+                    </div>
+                    
+                    <div class="w-px h-12 bg-amber-400 my-1 border-l border-dashed border-amber-600"></div>
+
+                    <div class="w-full max-w-2xl bg-white p-5 rounded-lg shadow-md border border-amber-200">
+                        <span class="inline-block bg-amber-100 text-amber-700 text-xs font-semibold px-2 py-0.5 rounded-full mb-2">FASE 5</span>
+                        <h3 class="text-xl font-semibold text-amber-600 mb-2">Análise Técnica e Reparo</h3>
+                        <p class="text-sm font-medium text-slate-500 mb-3">Responsável: Analista de Laboratório</p>
+                        <p class="text-slate-700">Analista de Lab assume o "Chamado de Problema", define previsão, diagnostica, (solicita orçamento/peça, se necessário), repara, testa e regista tudo no chamado.</p>
+                    </div>
+
+                    <div class="w-px h-12 bg-slate-300 my-1"></div>
+
+                    <div class="w-full max-w-2xl bg-white p-5 rounded-lg shadow-md border border-slate-200">
+                        <span class="inline-block bg-slate-100 text-slate-700 text-xs font-semibold px-2 py-0.5 rounded-full mb-2">FASE 6</span>
+                        <h3 class="text-xl font-semibold text-slate-800 mb-2">Agendamento da Devolução</h3>
+                        <p class="text-sm font-medium text-slate-500 mb-3">Responsável: Setor de Agendamento</p>
+                        <p class="text-slate-700">Analista de Lab encaminha. Agendamento contacta o cliente, define data, abre um "Chamado de Entrega" e atribui ao Analista Externo.</p>
+                    </div>
+
+                    <div class="w-px h-12 bg-indigo-300 my-1"></div>
+                    
+                    <div class="w-full max-w-2xl bg-white p-5 rounded-lg shadow-md border border-indigo-200">
+                        <span class="inline-block bg-indigo-100 text-indigo-700 text-xs font-semibold px-2 py-0.5 rounded-full mb-2">FASE 7</span>
+                        <h3 class="text-xl font-semibold text-indigo-700 mb-2">Entrega e Validação Final</h3>
+                        <p class="text-sm font-medium text-slate-500 mb-3">Responsável: Externo e Remoto/Interno</p>
+                        <p class="text-slate-700">Externo entrega e encerra o "Chamado de Entrega". O Interno (Remoto) faz a validação final com o cliente e, se OK, encerra o "Chamado de Problema".</p>
+                    </div>
+
+                </div>
+            </div>
+
+            <div id="view-artifacts" class="view-content hidden">
+                <p class="text-base text-slate-600 mb-8 max-w-3xl">
+                    Estes são os principais "artefatos" (documentos, etiquetas e registros) usados no processo unificado.
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    
+                    <div class="bg-white p-5 rounded-lg shadow-md border border-slate-200">
+                        <h3 class="text-xl font-semibold text-slate-700 mb-2">🎟️ Chamado de Problema (Principal)</h3>
+                        <p class="text-sm text-slate-600">O chamado mestre. Rastreia o problema do início ao fim. Contém todo o histórico técnico do Analista de Lab e a validação final.</p>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-lg shadow-md border border-slate-200">
+                        <h3 class="text-xl font-semibold text-slate-700 mb-2">🚚 Chamado de Retirada</h3>
+                        <p class="text-sm text-slate-600">Apenas para logística de *ida*. Usado para fotos, assinatura do cliente e controle do Analista Externo. Encerrado na Fase 4.</p>
+                    </div>
+                    
+                    <div class="bg-white p-5 rounded-lg shadow-md border border-slate-200">
+                        <h3 class="text-xl font-semibold text-slate-700 mb-2">🚚 Chamado de Entrega</h3>
+                        <p class="text-sm text-slate-600">Apenas para logística de *volta*. Aberto pelo Agendamento (Fase 6) e encerrado pelo Analista Externo (Fase 7).</p>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-lg shadow-md border border-slate-200">
+                        <h3 class="text-xl font-semibold text-slate-700 mb-2">📊 Planilha de Controle de Entrada</h3>
+                        <p class="text-sm text-slate-600">O "livro-mestre" do laboratório. Contém o status de todas as máquinas, Previsão de Saída e Data Efetiva de Saída.</p>
+                    </div>
+                    
+                    <div class="bg-white p-5 rounded-lg shadow-md border border-slate-200">
+                        <h3 class="text-xl font-semibold text-slate-700 mb-2">🏷️ Etiqueta de Identificação</h3>
+                        <p class="text-sm text-slate-600">Etiqueta física afixada na máquina. Deve conter: Nome do Cliente, Nº do Chamado Principal e Data de Entrada.</p>
+                    </div>
+                    
+                    <div class="bg-white p-5 rounded-lg shadow-md border border-slate-200">
+                        <h3 class="text-xl font-semibold text-slate-700 mb-2">📸 Fotos (Evidências)</h3>
+                        <p class="text-sm text-slate-600">Registros fotográficos do estado do equipamento no momento da coleta. Anexadas ao Chamado de Retirada.</p>
+                    </div>
+                    
+                    <div class="bg-white p-5 rounded-lg shadow-md border border-slate-200">
+                        <h3 class="text-xl font-semibold text-slate-700 mb-2">✍️ OS Virtual (Assinatura)</h3>
+                        <p class="text-sm text-slate-600">Assinatura digital do cliente no Milldesk (no chamado de retirada), confirmando a entrega do equipamento ao analista.</p>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-lg shadow-md border border-slate-200">
+                        <h3 class="text-xl font-semibold text-slate-700 mb-2">💬 Comunicação (Teams/WhatsApp)</h3>
+                        <p class="text-sm text-slate-600">Usado para comunicação interna rápida (chegada da máquina) e, em alguns casos, para validação com o cliente.</p>
+                    </div>
+                    
+                    <div class="bg-white p-5 rounded-lg shadow-md border border-slate-200">
+                        <h3 class="text-xl font-semibold text-slate-700 mb-2">🧾 Orçamento de Peças</h3>
+                        <p class="text-sm text-slate-600">Documento formal enviado ao cliente para aprovação, caso o Analista de Lab identifique a necessidade de substituição de hardware.</p>
+                    </div>
+
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            const navButtons = {
+                roles: document.getElementById('nav-roles'),
+                process: document.getElementById('nav-process'),
+                artifacts: document.getElementById('nav-artifacts')
+            };
+
+            const views = {
+                roles: document.getElementById('view-roles'),
+                process: document.getElementById('view-process'),
+                artifacts: document.getElementById('view-artifacts')
+            };
+
+            const allNavButtons = Object.values(navButtons);
+            const allViews = Object.values(views);
+
+            function showView(viewId) {
+                allViews.forEach(view => view.classList.add('hidden'));
+                allNavButtons.forEach(button => button.classList.remove('active'));
+
+                if (views[viewId]) {
+                    views[viewId].classList.remove('hidden');
+                }
+                if (navButtons[viewId]) {
+                    navButtons[viewId].classList.add('active');
+                }
+            }
+
+            navButtons.roles.addEventListener('click', () => showView('roles'));
+            navButtons.process.addEventListener('click', () => showView('process'));
+            navButtons.artifacts.addEventListener('click', () => showView('artifacts'));
+
+            // Lógica para 4 papéis
+            const roleButtons = {
+                interno: document.getElementById('btn-role-interno'),
+                externo: document.getElementById('btn-role-externo'),
+                lab: document.getElementById('btn-role-lab'),
+                agenda: document.getElementById('btn-role-agenda')
+            };
+
+            const roleContents = {
+                interno: document.getElementById('role-interno'),
+                externo: document.getElementById('role-externo'),
+                lab: document.getElementById('role-lab'),
+                agenda: document.getElementById('role-agenda')
+            };
+
+            const allRoleButtons = Object.values(roleButtons);
+            const allRoleContents = Object.values(roleContents);
+
+            function showRole(roleId) {
+                allRoleContents.forEach(content => content.classList.add('hidden'));
+                allRoleButtons.forEach(button => button.classList.remove('active'));
+                
+                if (roleContents[roleId]) {
+                    roleContents[roleId].classList.remove('hidden');
+                }
+                if (roleButtons[roleId]) {
+                    roleButtons[roleId].classList.add('active');
+                }
+            }
+
+            roleButtons.interno.addEventListener('click', () => showRole('interno'));
+            roleButtons.externo.addEventListener('click', () => showRole('externo'));
+            roleButtons.lab.addEventListener('click', () => showRole('lab'));
+            roleButtons.agenda.addEventListener('click', () => showRole('agenda'));
+
+            // Lógica de Impressão
+            const printButton = document.getElementById('print-button');
+            
+            function generatePrintableView() {
+                const title = document.querySelector('h1').innerText;
+                const subtitle = document.querySelector('p.text-lg').innerText;
+
+                // Obter o HTML de todas as secções
+                const htmlInterno = `<h2>Visão: Analista (Remoto/Interno)</h2>${document.getElementById('role-interno').innerHTML}`;
+                const htmlExterno = `<h2>Visão: Analista Externo</h2>${document.getElementById('role-externo').innerHTML}`;
+                const htmlLab = `<h2>Visão: Analista de Laboratório</h2>${document.getElementById('role-lab').innerHTML}`;
+                const htmlAgenda = `<h2>Visão: Setor de Agendamento</h2>${document.getElementById('role-agenda').innerHTML}`;
+                
+                const processIntro = document.querySelector('#view-process > p').outerHTML;
+                const processFlow = document.querySelector('#view-process > div').outerHTML;
+                const htmlProcess = `<h2>Processo Completo (7 Fases)</h2>${processIntro}${processFlow}`;
+
+                const artifactsIntro = document.querySelector('#view-artifacts > p').outerHTML;
+                const artifactsGrid = document.querySelector('#view-artifacts > div').outerHTML;
+                const htmlArtifacts = `<h2>Artefatos Chave</h2>${artifactsIntro}${artifactsGrid}`;
+
+                // 3. Criar o HTML da nova janela
+                const printHtml = `
+                    <html>
+                    <head>
+                        <title>Versão para Impressão - ${title}</title>
+                        <script src="https://cdn.tailwindcss.com"><\/script>
+                        <style>
+                            body { padding: 2rem; background-color: #fff; }
+                            h1 { font-size: 2.25rem; font-weight: 700; color: #4338ca; margin-bottom: 0.5rem; }
+                            p { max-width: 100%; }
+                            h2 { font-size: 1.875rem; font-weight: 600; color: #333; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-top: 2.5rem; margin-bottom: 1.5rem; }
+                            .w-px { 
+                                height: 3rem;
+                                width: 1px;
+                                background-color: #a5b4fc; 
+                                margin-left: auto; 
+                                margin-right: auto;
+                                margin-top: 0.25rem;
+                                margin-bottom: 0.25rem;
+                            }
+                            .border-l.border-dashed {
+                                border-left: 1px dashed #f59e0b;
+                                background-color: #fde68a;
+                            }
+                        </style>
+                    </head>
+                    <body class="bg-white">
+                        <div class="container mx-auto max-w-4xl">
+                            <h1>${title}</h1>
+                            <p class="text-lg text-slate-600 mb-8">${subtitle}</p>
+                            
+                            <section id="print-roles-interno">${htmlInterno}</section>
+                            <section id="print-roles-externo">${htmlExterno}</section>
+                            <section id="print-roles-lab">${htmlLab}</section>
+                            <section id="print-roles-agenda">${htmlAgenda}</section>
+                            <section id="print-process">${htmlProcess}</section>
+                            <section id="print-artifacts">${htmlArtifacts}</section>
+                        </div>
+                    </body>
+                    </html>
+                `;
+
+                // 4. Abrir e escrever na nova janela
+                const printWindow = window.open('', '_blank');
+                printWindow.document.open();
+                printWindow.document.write(printHtml);
+                printWindow.document.close();
+            }
+
+            printButton.addEventListener('click', generatePrintableView);
+
+            // Inicializar vistas
+            showView('roles');
+            showRole('interno');
+        });
+    </script>
+
+</body>
+</html>
+
